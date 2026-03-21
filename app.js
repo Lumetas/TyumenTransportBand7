@@ -1,7 +1,6 @@
-const version = -1;
+const version = -3;
 import "./shared/device-polyfill";
 import "./shared/promise";
-import "./shared/setTimeout";
 import { MessageBuilder } from "./shared/message";
 
 var MockTransportService = function() {
@@ -32,61 +31,50 @@ var MockTransportService = function() {
     ];
 };
 
-MockTransportService.prototype.getStops = function() {
-    var self = this;
-    return new Promise(function(resolve) {
-        setTimeout(function() {
-            resolve({ objects: self._stops });
-        }, 100);
-    });
+MockTransportService.prototype.getStops = function(callback) {
+    var data = { objects: this._stops };
+    if (callback) callback(data);
+    return data;
 };
 
-MockTransportService.prototype.getArrivals = function(stopId) {
-    var self = this;
-    return new Promise(function(resolve) {
-        setTimeout(function() {
-            var now = new Date();
-            var routes = null;
-            for (var i = 0; i < self._stops.length; i++) {
-                if (self._stops[i].id === stopId) {
-                    routes = self._stops[i].routes_ids;
-                    break;
-                }
-            }
-            routes = routes || [1, 2, 3];
-            
-            var arrivals = [];
-            for (var i = 0; i < Math.min(routes.length, 5); i++) {
-                for (var j = 0; j < 2; j++) {
-                    var planTime = new Date(now.getTime() + (j * 10 + Math.floor(Math.random() * 15)) * 60000);
-                    arrivals.push({
-                        route_id: routes[i],
-                        departure_plan: planTime.toISOString(),
-                        precise: Math.random() > 0.3,
-                        distance: Math.floor(Math.random() * 500) + 100
-                    });
-                }
-            }
-            
-            arrivals.sort(function(a, b) {
-                return new Date(a.departure_plan) - new Date(b.departure_plan);
+MockTransportService.prototype.getArrivals = function(stopId, callback) {
+    var now = new Date();
+    var routes = null;
+    for (var i = 0; i < this._stops.length; i++) {
+        if (this._stops[i].id === stopId) {
+            routes = this._stops[i].routes_ids;
+            break;
+        }
+    }
+    routes = routes || [1, 2, 3];
+    
+    var arrivals = [];
+    for (var i = 0; i < Math.min(routes.length, 5); i++) {
+        for (var j = 0; j < 2; j++) {
+            var planTime = new Date(now.getTime() + (j * 10 + Math.floor(Math.random() * 15)) * 60000);
+            arrivals.push({
+                route_id: routes[i],
+                departure_plan: planTime.toISOString(),
+                precise: Math.random() > 0.3
             });
-            
-            resolve({
-                objects: [{
-                    route_id: arrivals[0] ? arrivals[0].route_id : 1,
-                    order: arrivals.map(function(a) {
-                        return {
-                            prediction: {
-                                departure_plan: a.departure_plan,
-                                precise: a.precise
-                            }
-                        };
-                    })
-                }]
-            });
-        }, 150);
+        }
+    }
+    
+    arrivals.sort(function(a, b) {
+        return new Date(a.departure_plan) - new Date(b.departure_plan);
     });
+    
+    var data = {
+        objects: [{
+            route_id: arrivals[0] ? arrivals[0].route_id : 1,
+            order: arrivals.map(function(a) {
+                return { prediction: { departure_plan: a.departure_plan, precise: a.precise } };
+            })
+        }]
+    };
+    
+    if (callback) callback(data);
+    return data;
 };
 
 MockTransportService.prototype.getRoutesMap = function() {
@@ -102,7 +90,7 @@ App({
         messageBuilder: null,
         service: new MockTransportService()
     },
-    onCreate(options) {
+    onCreate: function(options) {
         var appId;
         if (!hmApp.packageInfo) {
             appId = 27280;
@@ -112,7 +100,7 @@ App({
         this.globalData.messageBuilder = new MessageBuilder({ appId: appId });
         this.globalData.messageBuilder.connect();
     },
-    onDestroy(options) {
+    onDestroy: function(options) {
         if (this.globalData.messageBuilder) {
             this.globalData.messageBuilder.disConnect();
         }
