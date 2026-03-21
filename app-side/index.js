@@ -6,85 +6,117 @@ var stopsCache = null;
 
 var messageBuilder = new MessageBuilder();
 
-function fetchJSON(url) {
-    return fetch({
-        url: url,
-        method: 'GET'
-    }).then(function(response) {
-        return response.json();
-    });
+function fetchJSON(url, callback) {
+    try {
+        var res = fetch(url);
+        if (!res) {
+            callback('fetch not available');
+            return;
+        }
+        var body = res.body;
+        if (typeof body === 'string') {
+            callback(null, JSON.parse(body));
+        } else {
+            callback(null, body);
+        }
+    } catch (e) {
+        callback('Error: ' + (e.message || String(e)));
+    }
 }
 
 function buildRoutesMap(routes) {
     var map = {};
-    for (var i = 0; i < routes.length; i++) {
-        map[routes[i].id] = routes[i].name;
-    }
+    try {
+        for (var i = 0; i < routes.length; i++) {
+            var r = routes[i];
+            if (r && r.id !== undefined) {
+                map[r.id] = r.name || String(r.id);
+            }
+        }
+    } catch (e) {}
     return map;
 }
 
-function getRoutes() {
+function getRoutes(callback) {
     if (routesCache) {
-        return Promise.resolve(routesCache);
+        callback(null, routesCache);
+        return;
     }
-    return fetchJSON(API_BASE + '/routesforsearch/?date=today').then(function(data) {
-        var routes = data.objects || data || [];
-        routesCache = {
-            routes: routes,
-            map: buildRoutesMap(routes)
-        };
-        return routesCache;
+    fetchJSON(API_BASE + '/routesforsearch/?date=today', function(err, data) {
+        if (err) { callback(err); return; }
+        try {
+            var routes = data.objects || data || [];
+            routesCache = { routes: routes, map: buildRoutesMap(routes) };
+            callback(null, routesCache);
+        } catch (e) { callback('Parse error'); }
     });
 }
 
-function getStops() {
-    return fetchJSON(API_BASE + '/checkpoint/').then(function(data) {
-        stopsCache = data.objects || data || [];
-        return stopsCache;
+function getStops(callback) {
+    if (stopsCache) {
+        callback(null, stopsCache);
+        return;
+    }
+    fetchJSON(API_BASE + '/checkpoint/', function(err, data) {
+        if (err) { callback(err); return; }
+        try {
+            stopsCache = data.objects || data || [];
+            callback(null, stopsCache);
+        } catch (e) { callback('Parse error'); }
     });
 }
 
-function getArrivals(stopId) {
-    return fetchJSON(API_BASE + '/prediction/?checkpoint_id=' + stopId);
-}
-
-function getSchedule(stopId, date) {
-    var d = date || new Date().toISOString().split('T')[0];
-    return fetchJSON(API_BASE + '/times/?date=' + d + '&checkpoint_id=' + stopId + '&show_intervals=1');
+function getArrivals(stopId, callback) {
+    fetchJSON(API_BASE + '/prediction/?checkpoint_id=' + stopId, function(err, data) {
+        if (err) { callback(err); return; }
+        callback(null, data);
+    });
 }
 
 AppSideService({
     onInit: function() {
-        messageBuilder.listen();
+        console.log('Side onInit');
+        messageBuilder.listen(function() {
+            console.log('Listening ready');
+        });
         
         messageBuilder.on("request", function(ctx) {
-            var jsonRpc = messageBuilder.buf2Json(ctx.request.payload);
-            var method = jsonRpc.method;
-            var params = jsonRpc.params || {};
-            
-            function responseHandler(data) {
-                ctx.response({ data: { result: data } });
+            var method, params;
+            try {
+                var jsonRpc = messageBuilder.buf2Json(ctx.request.payload);
+                method = jsonRpc.method;
+                params = jsonRpc.params || {};
+            } catch (e) {
+                ctx.response({ data: { error: 'Invalid request' } });
+                return;
             }
             
-            function errorHandler(e) {
-                ctx.response({ data: { error: e.message || String(e) } });
-            }
+            console.log('Request:', method);
             
             if (method === 'GET_ROUTES') {
-                getRoutes().then(responseHandler).catch(errorHandler);
+                getRoutes(function(err, data) {
+                    if (err) ctx.response({ data: { error: err } });
+                    else ctx.response({ data: { result: data } });
+                });
             } else if (method === 'GET_STOPS') {
-                getStops().then(responseHandler).catch(errorHandler);
+                getStops(function(err, data) {
+                    if (err) ctx.response({ data: { error: err } });
+                    else ctx.response({ data: { result: data } });
+                });
             } else if (method === 'GET_ARRIVALS') {
-                getArrivals(params.stopId).then(responseHandler).catch(errorHandler);
-            } else if (method === 'GET_SCHEDULE') {
-                getSchedule(params.stopId, params.date).then(responseHandler).catch(errorHandler);
+                getArrivals(params.stopId, function(err, data) {
+                    if (err) ctx.response({ data: { error: err } });
+                    else ctx.response({ data: { result: data } });
+                });
             } else {
-                ctx.response({ data: { error: 'Unknown method: ' + method } });
+                ctx.response({ data: { error: 'Unknown: ' + method } });
             }
         });
     },
 
-    onRun: function() {},
+    onRun: function() {
+        console.log('Side onRun');
+    },
 
     onDestroy: function() {}
 });

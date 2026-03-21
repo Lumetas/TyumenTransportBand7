@@ -1,108 +1,87 @@
-const version = -3;
+const version = -9;
 import "./shared/device-polyfill";
 import "./shared/promise";
 import { MessageBuilder } from "./shared/message";
 
-var MockTransportService = function() {
-    this._routesMap = {
-        1: '1', 2: '2', 3: '3', 4: '4', 5: '5',
-        6: '6', 7: '7', 8: '8', 9: '9', 10: '10',
-        11: '11', 12: '12', 14: '14', 15: '15', 16: '16',
-        17: '17', 18: '18', 19: '19', 20: '20', 21: '21',
-        22: '22', 23: '23', 24: '24', 25: '25', 26: '26',
-        27: '27', 28: '28', 29: '29', 30: '30', 31: '31',
-        32: '32', 33: '33', 34: '34', 35: '35', 36: '36',
-        37: '37', 38: '38', 39: '39', 40: '40', 41: '41',
-        42: '42', 43: '43', 44: '44', 45: '45', 46: '46',
-        47: '47', 48: '48', 49: '49', 50: '50'
-    };
-    
-    this._stops = [
-        { id: 1001, name: 'Центр', lat: 57.1531, lon: 65.5343, routes_ids: [1, 2, 3, 4, 5] },
-        { id: 1002, name: 'Вокзал', lat: 57.1545, lon: 65.5432, routes_ids: [1, 6, 7, 8, 9] },
-        { id: 1003, name: 'Технопарк', lat: 57.1567, lon: 65.5521, routes_ids: [10, 11, 12, 14, 15] },
-        { id: 1004, name: 'Аквапарк', lat: 57.1589, lon: 65.5612, routes_ids: [16, 17, 18, 19, 20] },
-        { id: 1005, name: 'ТЦ Кристалл', lat: 57.1612, lon: 65.5703, routes_ids: [21, 22, 23, 24, 25] },
-        { id: 1006, name: 'ТюмГУ', lat: 57.1634, lon: 65.5794, routes_ids: [26, 27, 28, 29, 30] },
-        { id: 1007, name: 'Заречный', lat: 57.1656, lon: 65.5885, routes_ids: [31, 32, 33, 34, 35] },
-        { id: 1008, name: 'Драмтеатр', lat: 57.1678, lon: 65.5976, routes_ids: [36, 37, 38, 39, 40] },
-        { id: 1009, name: 'Солнечный', lat: 57.1700, lon: 65.6067, routes_ids: [41, 42, 43, 44, 45] },
-        { id: 1010, name: 'Лесопарковый', lat: 57.1722, lon: 65.6158, routes_ids: [46, 47, 48, 49, 50] }
-    ];
-};
+var _messageBuilder = null;
+var _isReady = false;
+var _pendingRequests = [];
 
-MockTransportService.prototype.getStops = function(callback) {
-    var data = { objects: this._stops };
-    if (callback) callback(data);
-    return data;
-};
+function getMessageBuilder() {
+    return _messageBuilder;
+}
 
-MockTransportService.prototype.getArrivals = function(stopId, callback) {
-    var now = new Date();
-    var routes = null;
-    for (var i = 0; i < this._stops.length; i++) {
-        if (this._stops[i].id === stopId) {
-            routes = this._stops[i].routes_ids;
-            break;
-        }
-    }
-    routes = routes || [1, 2, 3];
-    
-    var arrivals = [];
-    for (var i = 0; i < Math.min(routes.length, 5); i++) {
-        for (var j = 0; j < 2; j++) {
-            var planTime = new Date(now.getTime() + (j * 10 + Math.floor(Math.random() * 15)) * 60000);
-            arrivals.push({
-                route_id: routes[i],
-                departure_plan: planTime.toISOString(),
-                precise: Math.random() > 0.3
-            });
-        }
+function isReady() {
+    return _isReady;
+}
+
+function apiRequest(method, params, callback) {
+    if (!_isReady || !_messageBuilder) {
+        setTimeout(function() {
+            callback({ error: 'Not ready' }, null);
+        }, 100);
+        return;
     }
     
-    arrivals.sort(function(a, b) {
-        return new Date(a.departure_plan) - new Date(b.departure_plan);
-    });
-    
-    var data = {
-        objects: [{
-            route_id: arrivals[0] ? arrivals[0].route_id : 1,
-            order: arrivals.map(function(a) {
-                return { prediction: { departure_plan: a.departure_plan, precise: a.precise } };
-            })
-        }]
-    };
-    
-    if (callback) callback(data);
-    return data;
-};
-
-MockTransportService.prototype.getRoutesMap = function() {
-    return this._routesMap;
-};
-
-MockTransportService.prototype.getRouteName = function(routeId) {
-    return this._routesMap[routeId] || String(routeId);
-};
+    try {
+        _messageBuilder.requestCb({
+            method: method,
+            params: params || {}
+        }, function(err, result) {
+            if (err) {
+                callback({ error: String(err) }, null);
+                return;
+            }
+            try {
+                var data = null;
+                if (result && result.data) {
+                    data = result.data.result !== undefined ? result.data.result : result.data;
+                } else {
+                    data = result;
+                }
+                callback(null, data);
+            } catch (e) {
+                callback({ error: 'Parse: ' + String(e) }, null);
+            }
+        });
+    } catch (e) {
+        callback({ error: String(e) }, null);
+    }
+}
 
 App({
+    _VERSIONL: version,
     globalData: {
-        messageBuilder: null,
-        service: new MockTransportService()
+        apiRequest: apiRequest,
+        isReady: isReady
     },
-    onCreate: function(options) {
-        var appId;
-        if (!hmApp.packageInfo) {
-            appId = 27280;
-        } else {
-            appId = hmApp.packageInfo().appId;
+    onCreate: function() {
+        try {
+            console.log('App onCreate');
+            
+            var appId = 27280;
+            if (hmApp && hmApp.packageInfo) {
+                try {
+                    appId = hmApp.packageInfo().appId;
+                } catch (e) {}
+            }
+            
+            _messageBuilder = new MessageBuilder({ appId: appId });
+            
+            _messageBuilder.connect(function(mb) {
+                console.log('Connected to side');
+                _isReady = true;
+            });
+            
+        } catch (e) {
+            console.log('Init error:', e);
         }
-        this.globalData.messageBuilder = new MessageBuilder({ appId: appId });
-        this.globalData.messageBuilder.connect();
     },
-    onDestroy: function(options) {
-        if (this.globalData.messageBuilder) {
-            this.globalData.messageBuilder.disConnect();
-        }
+    onDestroy: function() {
+        try {
+            if (_messageBuilder) {
+                _messageBuilder.disConnect();
+            }
+        } catch (e) {}
     }
 });

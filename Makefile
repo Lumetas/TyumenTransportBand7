@@ -3,3 +3,6 @@ install:
 
 build:
 	zeus build
+
+dev:
+	zeus dev

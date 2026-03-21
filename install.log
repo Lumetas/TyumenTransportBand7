@@ -3,49 +3,49 @@
 [WARNING] In order to achieve better display effects on Zepp OS
 [WARNING] The minimum width and height of the image /home/lum/LumProjects/tgt_band/tgt/assets/common/icon.png needs to be 124
 [WARNING] Please checkout the Design Guide: https://docs.zepp.com/docs/designs/visual/icons/
-[ROLLUP] Transform 4 JS files in 1666ms
-[RESIZE] Succeed resize icon.png to target size 96, took 31ms
+[ROLLUP] Transform 4 JS files in 1479ms
+[RESIZE] Succeed resize icon.png to target size 96, took 8ms
 [PNG2TGA] Converting PNG files...
-[PNG2TGA] 1 files, 31ms, done!
+[PNG2TGA] 1 files, 35ms, done!
 [QJSC] Compiling JS files...
-[QJSC] 3 files, 39ms, done!
+[QJSC] 3 files, 28ms, done!
 [RESIZE] Succeed resize icon.png to target size 92, took 8ms
-[PNG2TGA] Converting PNG files...
-[PNG2TGA] 1 files, 5ms, done!
-[QJSC] Compiling JS files...
-[QJSC] 3 files, 29ms, done!
-[RESIZE] Succeed resize icon.png to target size 86, took 10ms
 [PNG2TGA] Converting PNG files...
 [PNG2TGA] 1 files, 4ms, done!
 [QJSC] Compiling JS files...
-[QJSC] 3 files, 59ms, done!
+[QJSC] 3 files, 28ms, done!
+[RESIZE] Succeed resize icon.png to target size 86, took 8ms
 [PNG2TGA] Converting PNG files...
-[PNG2TGA] 1 files, 52ms, done!
+[PNG2TGA] 1 files, 3ms, done!
 [QJSC] Compiling JS files...
-[QJSC] 3 files, 29ms, done!
+[QJSC] 3 files, 47ms, done!
+[PNG2TGA] Converting PNG files...
+[PNG2TGA] 1 files, 49ms, done!
+[QJSC] Compiling JS files...
+[QJSC] 3 files, 27ms, done!
 [ℹ] getting package...
 [ℹ] Generating preview QR code...
 [✔] Please use Zepp APP to scan the following QR code to preview your Application.
-[✔] This QR code will expire on 2026-03-28 19:55:33.
+[✔] This QR code will expire on 2026-03-28 21:47:53.
 [undefined] ТюменьГорТранс-1.0.1
 ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-█ ▄▄▄▄▄ █▄▀▀▄▄█▀▄▀ ▄ █▄▄██ ██▀█ ▄▄▄▄▄ █
-█ █   █ ███▄█ ▄█ ▄▀▄▄▀ █▀  ▄█ █ █   █ █
-█ █▄▄▄█ ██▄▀▄▀▀▄█▄█ ████▀▀▀██▄█ █▄▄▄█ █
-█▄▄▄▄▄▄▄█ █ ▀▄▀ ▀ █ ▀▄█▄█▄▀▄▀ █▄▄▄▄▄▄▄█
-█ ▄█  █▄██▄▄▄▀█ ▄▄▀▀ █▀ ▀▄█▄▀ █▄▀▀██▀▄█
-█▄█ ▄█ ▄█▄▄▄ ▀██▄▄ ▀▀▀█▄ ███▄▄▄▄  ▄ ▄ █
-█ █▀▀█▀▄ █▄▀▄▄▀██ ▄█ ▄██▀ █▀▀ █▄ ▀ ▀ ▄█
-██▄▄ ▀█▄██▀  ▄██▄██▀▄▀▄▀█ █▄ █▄█ ▀█▀█ █
-█▀ ▀ ▀█▄ ▄  ▀▀██▄▄ ██▀▀ ▄█ █▀█▄▄ █ ▄▀▄█
-█▀▀▄  █▄▀█ █▄▀▀▀▄ ▄▄▄▀█▀▄  █ █ ▄▀▄▀█▀▄█
-█   ██▀▄▄▄█▀█▄█▄█▄▄▀ ▄██▀█▀▀ ▄█▄  ▄▀███
-██▀▄█▄▀▄ ▄█▀█▄█▀▄ ▀ ▀ █▄ ▀▄▀ █▀█▀█▀▀▀ █
-█▀█ ▄ ▀▄▀▄███▀▄█▄ █▀█▄▀█ ▄▀█▀▄▀▄▄▀██ ▄█
-█ ▄ ▄  ▄███ █▀▄▀▄ ▄█ ▄█▀▀█▄ ▄ ████  ▄▄█
-█▄██▄██▄█ ▄  ▄█▀▀█▄▀ ▄▀ █  █  ▄▄▄ ▄▄▄██
-█ ▄▄▄▄▄ ██▄▄▀▄ ▀ ▀▄  ▄▄█ ▀▀█▀ █▄█ █▄█▄█
-█ █   █ █  ▄▄▀ ▀▄▄▀▀ █▀▀▀█▀ ▄   ▄▄ █ ▀█
-█ █▄▄▄█ █▀█  ▀ █▄▄ ▄███▄ ▄▄▀ █▄▀ ▄▀▀▀ █
-█▄▄▄▄▄▄▄█▄██▄▄▄█▄▄██▄▄███▄███▄█▄██▄██▄█
+█ ▄▄▄▄▄ █▄▀▀▄▄▀ ▄▀▄▄▀▀▄▄██ ██▀█ ▄▄▄▄▄ █
+█ █   █ ███▄█  ▄▀▀██ ▀ █▀  ▄█ █ █   █ █
+█ █▄▄▄█ ██▄▀▄▀▄█▄▄▄ ▄▀██▀▀▀██▄█ █▄▄▄█ █
+█▄▄▄▄▄▄▄█ █ ▀▄▀ ▀▄█▄▀ █▄█▄▀▄▀ █▄▄▄▄▄▄▄█
+█▄ █  █▄▀▀▄▄▄▀  ▄▄▀█▄▄▀ ▀▄█▄▀ █▄▀▀██▀▄█
+█▄▄▀▄▄ ▄█ ▀▀ ▀██▄▄  ███▄ ███▄▄▄▄  ▄ ▄ █
+██▄ ▄▀ ▄▄▄▄▀▄▄▄▀▄ ▀▀ ▄██▀ █▀▀ █▄ ▀ ▀ ▄█
+█▄▄▀▄█▄▄▄  ▄ ▄██▄▄█  ▀▄▀█ █▄ █▄█ ▀█▀█ █
+█ ▄▄▄█▄▄ ▄█ ▀▀ █▀█▀█▀ ▀ ▄█ █▀█▄▄ █ ▄▀▄█
+█▀▄▀▀ █▄▄▄██▄▀ █▄ ▄▀ ██▀▄  █ █ ▄▀▄▀█▀▄█
+█ █ █ ▄▄▀▀█ █▄   ▄▀▀████▀█▀▀ ▄█▄  ▄▀███
+█▄ ▄ ▄▀▄█▀▄██▄██▄  █▀ █▄ ▀▄▀ █▀█▀█▀▀▀ █
+█ ▄▄▄▀█▄█ ▄▄█▀▀██▀▄▀█▄▀█ ▄▀█▀▄▀▄▄▀██ ▄█
+█ ▄▄ ▀ ▄█ ▄▀█▀▄█  █▀ ▄█▀▀█▄ ▄ ████  ▄▄█
+█▄█▄█▄▄▄█ █▀ ▄ █▀█▀▀ ▄▀ █  █  ▄▄▄ ▄▄▄██
+█ ▄▄▄▄▄ ██▄█▀▄   ▄█▄ ▄▄█ ▀▀█▀ █▄█ █▄█▄█
+█ █   █ █ ▄▄▄▀ ▀ █▄█ █▀▀▀█▀ ▄   ▄▄ █ ▀█
+█ █▄▄▄█ █▀▀  ▀ █▄  ▄███▄ ▄▄▀ █▄▀ ▄▀▀▀ █
+█▄▄▄▄▄▄▄█▄▄▄▄▄▄██▄▄█▄▄███▄███▄█▄██▄██▄█
 
