@@ -1,47 +1,104 @@
 {
-  "app": {
-    "appId": 29068,
-    "appIdType": 0,
-    "appName": "TGTSchedule",
-    "appType": "app",
-    "description": "",
-    "icon": "icon.png",
-    "vender": "tgt",
-    "version": {
-      "code": 1,
-      "name": "1.0.0"
-    }
-  },
-  "configVersion": "v2",
-  "debug": false,
-  "i18n": {
-    "ru-RU": {
-      "appName": "Расписание Тюмень"
-    }
-  },
-  "module": {
-    "page": {
-      "pages": [
-        "page/StopsListPage",
-        "page/StopDetailPage"
-      ],
-      "window": {
-        "backgroundColor": "#111111",
-        "backgroundTextStyle": "light",
-        "navigationBarBackgroundColor": "#1a1a1a",
-        "navigationBarTextStyle": "white",
-        "navigationBarTitleText": "Расписание"
-      }
-    }
-  },
-  "permissions": [
-    "gps"
-  ],
-  "runtime": {
-    "apiVersion": {
-      "compatible": "1.0.0",
-      "minVersion": "1.0.0",
-      "target": "1.0.1"
-    }
-  }
+	"configVersion": "v2",
+	"app": {
+		"appId": 27280,
+		"appName": "ТюменьГорТранс",
+		"appType": "app",
+		"version": {
+			"code": 1,
+			"name": "1.0.1"
+		},
+		"icon": "icon.png",
+		"vender": "zepp",
+		"description": "Расписание Тюменского городского транспорта"
+	},
+	"permissions": [],
+	"runtime": {
+		"apiVersion": {
+			"compatible": "1.0.0",
+			"target": "1.0.1",
+			"minVersion": "1.0.0"
+		}
+	},
+	"targets": {
+		"common": {
+			"module": {
+				"page": {
+					"pages": [
+						"page/StopsListPage",
+						"page/StopDetailPage"
+					]
+				},
+				"app-side": {
+					"path": "app-side/index"
+				}
+			},
+			"platforms": [
+				{
+					"name": "amazfit-band7",
+					"deviceSource": 253
+				},
+				{
+					"name": "amazfit-band7-w",
+					"deviceSource": 254
+				},
+				{
+					"name": "gtr3-pro",
+					"deviceSource": 229
+				},
+				{
+					"name": "gtr3-pro-w",
+					"deviceSource": 230
+				},
+				{
+					"name": "gtr3",
+					"deviceSource": 226
+				},
+				{
+				  "name": "ab7",
+				  "deviceSource": 252
+				},
+				{
+				  "name": "ab7-w",
+				  "deviceSource": 253
+				},
+				{
+					"name": "gtr3-w",
+					"deviceSource": 227
+				},
+				{
+					"name": "t-rex2",
+					"deviceSource": 418
+				},
+				{
+					"name": "t-rex2-w",
+					"deviceSource": 419
+				},
+				{
+					"name": "gts3",
+					"deviceSource": 224
+				},
+				{
+					"name": "gts3-w",
+					"deviceSource": 225
+				},
+				{
+					"name": "gts4",
+					"deviceSource": 7995648
+				},
+				{
+					"name": "gts4-w",
+					"deviceSource": 7995649
+				}
+			],
+			"designWidth": 480
+		}
+	},
+	"i18n": {
+		"en-US": {
+			"appName": "TyumenGorTrans"
+		}
+	},
+	"defaultLanguage": "en-US"
 }
+
