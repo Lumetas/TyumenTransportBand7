@@ -60,12 +60,11 @@ Page({
             var stop = this.state.stops[stopIdx];
             if (!stop) continue;
 
-            var isSelected = i === 1;
             var baseY = 60 + i * 60;
 
             this.state.listWidgets.push(hmUI.createWidget(hmUI.widget.FILL_RECT, {
                 x: 16, y: baseY, w: 160, h: 52,
-                color: isSelected ? 0x3366cc : 0x222222,
+                color: 0x222222,
                 radius: 8
             }));
 

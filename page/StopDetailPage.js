@@ -88,7 +88,6 @@ Page({
         }
 
         var now = new Date();
-        var self = this;
 
         for (var i = 0; i < arrivals.length; i++) {
             var arr = arrivals[i];
