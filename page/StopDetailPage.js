@@ -6,49 +6,66 @@ Page({
     
     onInit(param) {
         this.service = getApp()._options.globalData.service;
-    },
-    
-    build(param) {
-        this.clearAll();
-
-        if (param) {
-            try {
-                this.state.stopData = JSON.parse(param);
-            } catch (e) {
-                this.state.stopData = null;
-            }
-        }
-
+        this.state.stopData = this.parseParam(param);
         if (!this.state.stopData) {
             hmApp.goBack();
             return;
         }
-
+    },
+    
+    build() {
+        this.clearAll();
         this.renderHeader();
         this.loadArrivals();
         this.registerGestures();
     },
     
-    getService() {
+    parseParam: function(param) {
+        if (!param) return null;
+        try {
+            if (typeof param === 'string') {
+                var result = {};
+                var parts = param.replace(/[{}"]/g, '').split(',');
+                for (var i = 0; i < parts.length; i++) {
+                    var kv = parts[i].split(':');
+                    if (kv.length >= 2) {
+                        var key = kv[0].trim();
+                        var val = kv.slice(1).join(':').trim();
+                        if (key === 'stopId') {
+                            result.stopId = parseInt(val, 10);
+                        } else if (key === 'stopName') {
+                            result.stopName = val;
+                        }
+                    }
+                }
+                return result;
+            }
+            return null;
+        } catch (e) {
+            return null;
+        }
+    },
+    
+    getService: function() {
         return this.service;
     },
     
-    clearAll() {
+    clearAll: function() {
         this.state.widgets.forEach(function(w) { hmUI.deleteWidget(w); });
         this.state.widgets = [];
     },
     
-    renderHeader() {
+    renderHeader: function() {
         this.state.widgets.push(hmUI.createWidget(hmUI.widget.TEXT, {
             x: 0, y: 15, w: 192, h: 30,
-            text: this.state.stopData.stopName,
+            text: this.state.stopData.stopName || 'Остановка',
             text_size: 18,
             color: 0xffffff,
             align_h: hmUI.align.CENTER_H
         }));
     },
     
-    parseArrivals(data) {
+    parseArrivals: function(data) {
         var arrivals = [];
         var objects = data.objects || [];
         
@@ -75,7 +92,7 @@ Page({
         return arrivals.slice(0, 7);
     },
     
-    renderArrivals(arrivals) {
+    renderArrivals: function(arrivals) {
         if (!arrivals.length) {
             this.state.widgets.push(hmUI.createWidget(hmUI.widget.TEXT, {
                 x: 0, y: 150, w: 192, h: 30,
@@ -88,6 +105,7 @@ Page({
         }
 
         var now = new Date();
+        var self = this;
 
         for (var i = 0; i < arrivals.length; i++) {
             var arr = arrivals[i];
@@ -143,23 +161,16 @@ Page({
         }
     },
     
-    loadArrivals() {
+    loadArrivals: function() {
         var self = this;
-        this.getService().getArrivals(this.state.stopData.stopId).then(function(data) {
+        var stopId = this.state.stopData.stopId;
+        this.getService().getArrivals(stopId).then(function(data) {
             var arrivals = self.parseArrivals(data);
             self.renderArrivals(arrivals);
-        }).catch(function() {
-            self.state.widgets.push(hmUI.createWidget(hmUI.widget.TEXT, {
-                x: 0, y: 150, w: 192, h: 30,
-                text: 'Ошибка загрузки',
-                text_size: 14,
-                color: 0xff6666,
-                align_h: hmUI.align.CENTER_H
-            }));
         });
     },
     
-    registerGestures() {
+    registerGestures: function() {
         hmApp.registerGestureEvent(function(e) {
             if (e === hmApp.gesture.RIGHT) {
                 hmApp.goBack();

@@ -24,9 +24,11 @@ Page({
     getRoutesText(routesIds) {
         if (!routesIds || !routesIds.length) return '-';
         var routesMap = this.getService().getRoutesMap();
-        return routesIds.slice(0, 5).map(function(r) {
-            return this.getService().getRouteName(r);
-        }.bind(this)).join(' ');
+        var result = [];
+        for (var i = 0; i < Math.min(routesIds.length, 5); i++) {
+            result.push(routesMap[routesIds[i]] || String(routesIds[i]));
+        }
+        return result.join(' ');
     },
     
     loadStops() {
@@ -35,8 +37,6 @@ Page({
             self.state.stops = data.objects || [];
             self.state.selectedIndex = 0;
             self.renderList();
-        }).catch(function() {
-            hmUI.showToast({ text: 'Ошибка загрузки' });
         });
     },
     
@@ -89,14 +89,12 @@ Page({
             });
             this.state.listWidgets.push(btn);
 
-            (function(stopItem) {
-                btn.addEventListener(hmUI.event.CLICK_UP, function() {
-                    hmApp.gotoPage({
-                        url: 'page/StopDetailPage',
-                        param: JSON.stringify({ stopId: stopItem.id, stopName: stopItem.name })
-                    });
-                });
-            })(stop);
+            btn.addEventListener(hmUI.event.CLICK_UP, (function(s) {
+                return function() {
+                    var param = '{"stopId":' + s.id + ',"stopName":"' + s.name + '"}';
+                    hmApp.gotoPage({ url: 'page/StopDetailPage', param: param });
+                };
+            })(stop));
         }
 
         if (this.state.selectedIndex > 0) {
@@ -121,7 +119,6 @@ Page({
     },
     
     clearAll() {
-        var self = this;
         this.state.widgets.forEach(function(w) { hmUI.deleteWidget(w); });
         this.state.listWidgets.forEach(function(w) { hmUI.deleteWidget(w); });
         this.state.widgets = [];

@@ -1,19 +1,21 @@
 import "./shared/device-polyfill";
+import "./shared/promise";
+import "./shared/setTimeout";
 import { MessageBuilder } from "./shared/message";
 
 var MockTransportService = function() {
-    this._routesMap = new Map([
-        [1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5'],
-        [6, '6'], [7, '7'], [8, '8'], [9, '9'], [10, '10'],
-        [11, '11'], [12, '12'], [14, '14'], [15, '15'], [16, '16'],
-        [17, '17'], [18, '18'], [19, '19'], [20, '20'], [21, '21'],
-        [22, '22'], [23, '23'], [24, '24'], [25, '25'], [26, '26'],
-        [27, '27'], [28, '28'], [29, '29'], [30, '30'], [31, '31'],
-        [32, '32'], [33, '33'], [34, '34'], [35, '35'], [36, '36'],
-        [37, '37'], [38, '38'], [39, '39'], [40, '40'], [41, '41'],
-        [42, '42'], [43, '43'], [44, '44'], [45, '45'], [46, '46'],
-        [47, '47'], [48, '48'], [49, '49'], [50, '50'],
-    ]);
+    this._routesMap = {
+        1: '1', 2: '2', 3: '3', 4: '4', 5: '5',
+        6: '6', 7: '7', 8: '8', 9: '9', 10: '10',
+        11: '11', 12: '12', 14: '14', 15: '15', 16: '16',
+        17: '17', 18: '18', 19: '19', 20: '20', 21: '21',
+        22: '22', 23: '23', 24: '24', 25: '25', 26: '26',
+        27: '27', 28: '28', 29: '29', 30: '30', 31: '31',
+        32: '32', 33: '33', 34: '34', 35: '35', 36: '36',
+        37: '37', 38: '38', 39: '39', 40: '40', 41: '41',
+        42: '42', 43: '43', 44: '44', 45: '45', 46: '46',
+        47: '47', 48: '48', 49: '49', 50: '50'
+    };
     
     this._stops = [
         { id: 1001, name: 'Центр', lat: 57.1531, lon: 65.5343, routes_ids: [1, 2, 3, 4, 5] },
@@ -25,7 +27,7 @@ var MockTransportService = function() {
         { id: 1007, name: 'Заречный', lat: 57.1656, lon: 65.5885, routes_ids: [31, 32, 33, 34, 35] },
         { id: 1008, name: 'Драмтеатр', lat: 57.1678, lon: 65.5976, routes_ids: [36, 37, 38, 39, 40] },
         { id: 1009, name: 'Солнечный', lat: 57.1700, lon: 65.6067, routes_ids: [41, 42, 43, 44, 45] },
-        { id: 1010, name: 'Лесопарковый', lat: 57.1722, lon: 65.6158, routes_ids: [46, 47, 48, 49, 50] },
+        { id: 1010, name: 'Лесопарковый', lat: 57.1722, lon: 65.6158, routes_ids: [46, 47, 48, 49, 50] }
     ];
 };
 
@@ -43,8 +45,14 @@ MockTransportService.prototype.getArrivals = function(stopId) {
     return new Promise(function(resolve) {
         setTimeout(function() {
             var now = new Date();
-            var routes = self._stops.find(function(s) { return s.id === stopId; });
-            routes = routes ? routes.routes_ids : [1, 2, 3];
+            var routes = null;
+            for (var i = 0; i < self._stops.length; i++) {
+                if (self._stops[i].id === stopId) {
+                    routes = self._stops[i].routes_ids;
+                    break;
+                }
+            }
+            routes = routes || [1, 2, 3];
             
             var arrivals = [];
             for (var i = 0; i < Math.min(routes.length, 5); i++) {
@@ -85,7 +93,7 @@ MockTransportService.prototype.getRoutesMap = function() {
 };
 
 MockTransportService.prototype.getRouteName = function(routeId) {
-    return this._routesMap.get(routeId) || String(routeId);
+    return this._routesMap[routeId] || String(routeId);
 };
 
 App({
@@ -94,13 +102,13 @@ App({
         service: new MockTransportService()
     },
     onCreate(options) {
-        let appId;
+        var appId;
         if (!hmApp.packageInfo) {
-            throw new Error('Set appId');
+            appId = 27280;
         } else {
             appId = hmApp.packageInfo().appId;
         }
-        this.globalData.messageBuilder = new MessageBuilder({ appId });
+        this.globalData.messageBuilder = new MessageBuilder({ appId: appId });
         this.globalData.messageBuilder.connect();
     },
     onDestroy(options) {
