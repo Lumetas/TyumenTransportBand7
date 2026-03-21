@@ -6,19 +6,14 @@ var stopsCache = null;
 
 var messageBuilder = new MessageBuilder();
 
-function fetchJSON(url, callback) {
+async function fetchJSON(url, callback) {
     try {
-        var res = fetch(url);
-        if (!res) {
-            callback('fetch not available');
-            return;
-        }
-        var body = res.body;
-        if (typeof body === 'string') {
-            callback(null, JSON.parse(body));
-        } else {
-            callback(null, body);
-        }
+		// TODO: Если оставить первый вариант, то ошибка парсинга. Если второй, то бесконечный цикл с подключениями
+        var res = await fetch(url);
+		callback(null, JSON.parse(res.body));
+		
+		// const data = typeof res.body === 'string' ?  JSON.parse(res.body) : res.body
+		// callback(null, data);
     } catch (e) {
         callback('Error: ' + (e.message || String(e)));
     }
@@ -43,12 +38,12 @@ function getRoutes(callback) {
         return;
     }
     fetchJSON(API_BASE + '/routesforsearch/?date=today', function(err, data) {
-        if (err) { callback(err); return; }
+        if (err) { callback(err + '1'); return; }
         try {
             var routes = data.objects || data || [];
             routesCache = { routes: routes, map: buildRoutesMap(routes) };
             callback(null, routesCache);
-        } catch (e) { callback('Parse error'); }
+        } catch (e) { callback('Parse error' + JSON.stringify(data)); }
     });
 }
 
@@ -95,16 +90,19 @@ AppSideService({
             
             if (method === 'GET_ROUTES') {
                 getRoutes(function(err, data) {
+					data = JSON.stringify(data);
                     if (err) ctx.response({ data: { error: err } });
                     else ctx.response({ data: { result: data } });
                 });
             } else if (method === 'GET_STOPS') {
                 getStops(function(err, data) {
+					data = JSON.stringify(data);
                     if (err) ctx.response({ data: { error: err } });
                     else ctx.response({ data: { result: data } });
                 });
             } else if (method === 'GET_ARRIVALS') {
                 getArrivals(params.stopId, function(err, data) {
+					data = JSON.stringify(data);
                     if (err) ctx.response({ data: { error: err } });
                     else ctx.response({ data: { result: data } });
                 });
