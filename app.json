@@ -1,0 +1,47 @@
+{
+  "app": {
+    "appId": 29068,
+    "appIdType": 0,
+    "appName": "TGTSchedule",
+    "appType": "app",
+    "description": "",
+    "icon": "icon.png",
+    "vender": "tgt",
+    "version": {
+      "code": 1,
+      "name": "1.0.0"
+    }
+  },
+  "configVersion": "v2",
+  "debug": false,
+  "i18n": {
+    "ru-RU": {
+      "appName": "Расписание Тюмень"
+    }
+  },
+  "module": {
+    "page": {
+      "pages": [
+        "page/StopsListPage",
+        "page/StopDetailPage"
+      ],
+      "window": {
+        "backgroundColor": "#111111",
+        "backgroundTextStyle": "light",
+        "navigationBarBackgroundColor": "#1a1a1a",
+        "navigationBarTextStyle": "white",
+        "navigationBarTitleText": "Расписание"
+      }
+    }
+  },
+  "permissions": [
+    "gps"
+  ],
+  "runtime": {
+    "apiVersion": {
+      "compatible": "1.0.0",
+      "minVersion": "1.0.0",
+      "target": "1.0.1"
+    }
+  }
+}
