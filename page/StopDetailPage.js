@@ -29,6 +29,7 @@ function parseParam(param) {
 }
 
 function renderArrivals(data, stopName) {
+    var { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = hmSetting.getDeviceInfo();
     var arrivals = [];
     var objects = data.objects || [];
     
@@ -84,7 +85,7 @@ function renderArrivals(data, stopName) {
     });
 
     hmUI.createWidget(hmUI.widget.TEXT, {
-        x: 0, y: 5, w: 176, h: 28,
+        x: 0, y: 5, w: DEVICE_WIDTH, h: 28,
         text: stopName || 'Остановка',
         text_size: 22,
         color: 0xffffff,
@@ -93,7 +94,7 @@ function renderArrivals(data, stopName) {
 
     if (items.length === 0) {
         hmUI.createWidget(hmUI.widget.TEXT, {
-            x: 0, y: 50, w: 176, h: 30,
+            x: 0, y: 50, w: DEVICE_WIDTH, h: 30,
             text: 'Нет данных',
             text_size: 18,
             color: 0x888888,
@@ -105,8 +106,8 @@ function renderArrivals(data, stopName) {
     hmUI.createWidget(hmUI.widget.SCROLL_LIST, {
         x: 8,
         y: 40,
-        h: 290,
-        w: 160,
+        h: DEVICE_HEIGHT - 80,
+        w: DEVICE_WIDTH - 16,
         item_space: 8,
         item_config: [
             {
@@ -116,19 +117,19 @@ function renderArrivals(data, stopName) {
                 item_bg_radius: 8,
                 text_view: [
                     {
-                        x: 8, y: 0, w: 50, h: 48,
+                        x: 8, y: 0, w: Math.floor((DEVICE_WIDTH - 16) * 0.25), h: 48,
                         key: 'route',
                         color: 0xffffff,
                         text_size: 22
                     },
                     {
-                        x: 58, y: 0, w: 70, h: 48,
+                        x: 8 + Math.floor((DEVICE_WIDTH - 16) * 0.25), y: 0, w: Math.floor((DEVICE_WIDTH - 16) * 0.45), h: 48,
                         key: 'time',
                         color: 0x66ff66,
                         text_size: 22
                     },
                     {
-                        x: 128, y: 14, w: 32, h: 20,
+                        x: 8 + Math.floor((DEVICE_WIDTH - 16) * 0.7), y: 14, w: Math.floor((DEVICE_WIDTH - 16) * 0.3), h: 20,
                         key: 'precise',
                         color: 0x666666,
                         text_size: 14

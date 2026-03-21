@@ -14,11 +14,12 @@ Page({
     state: {},
     
     build() {
+        var { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = hmSetting.getDeviceInfo();
         var stops = service.getStops();
         var stopsData = stops.objects || [];
         
         hmUI.createWidget(hmUI.widget.TEXT, {
-            x: 0, y: 5, w: 176, h: 28,
+            x: 0, y: 5, w: DEVICE_WIDTH, h: 28,
             text: 'Остановки',
             text_size: 24,
             color: 0xffffff,
@@ -36,8 +37,8 @@ Page({
         hmUI.createWidget(hmUI.widget.SCROLL_LIST, {
             x: 8,
             y: 40,
-            w: 160,
-            h: 290,
+            w: DEVICE_WIDTH - 16,
+            h: DEVICE_HEIGHT - 80,
             item_space: 8,
             item_config: [
                 {
@@ -47,13 +48,13 @@ Page({
                     item_bg_radius: 10,
                     text_view: [
                         {
-                            x: 8, y: 8, w: 144, h: 28,
+                            x: 8, y: 8, w: DEVICE_WIDTH - 32, h: 28,
                             key: 'name',
                             color: 0xffffff,
                             text_size: 22
                         },
                         {
-                            x: 8, y: 38, w: 144, h: 24,
+                            x: 8, y: 38, w: DEVICE_WIDTH - 32, h: 24,
                             key: 'routes',
                             color: 0x888888,
                             text_size: 18
