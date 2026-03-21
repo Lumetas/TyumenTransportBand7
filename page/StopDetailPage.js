@@ -10,51 +10,36 @@ function getDeviceDims() {
     return { width: 176, height: 368 };
 }
 
-var stopData = null;
 var dims = getDeviceDims();
-var routesMap = {};
-var scrollList = null;
-var loadingText = null;
-var loadTimeout = null;
 
-function parseParam(param) {
-    if (!param) return null;
+function parseQueryParam(param) {
+    if (!param) return {};
     try {
-        if (typeof param === 'string') {
-            var result = {};
-            var parts = param.replace(/[{}"]/g, '').split(',');
-            for (var i = 0; i < parts.length; i++) {
-                var kv = parts[i].split(':');
-                if (kv.length >= 2) {
-                    var key = kv[0].trim();
-                    var val = kv.slice(1).join(':').trim();
-                    if (key === 'stopId') {
-                        result.stopId = parseInt(val, 10);
-                    } else if (key === 'stopName') {
-                        result.stopName = val;
-                    }
-                }
+        var result = {};
+        var str = param.startsWith('?') ? param.substring(1) : param;
+        var pairs = str.split('&');
+        for (var i = 0; i < pairs.length; i++) {
+            var kv = pairs[i].split('=');
+            if (kv.length >= 2) {
+                result[decodeURIComponent(kv[0])] = decodeURIComponent(kv.slice(1).join('='));
             }
-            return result;
         }
-    } catch (e) {}
-    return null;
+        return result;
+    } catch (e) {
+        return {};
+    }
 }
 
-function getRouteName(routeId) {
+function getRouteName(routeId, routesMap) {
     return routesMap[routeId] || String(routeId);
 }
 
-function renderArrivals(data, error) {
-    if (loadingText) {
-        try { loadingText.delete(); } catch (e) {}
-        loadingText = null;
-    }
-    
-    if (scrollList) {
-        try { scrollList.delete(); } catch (e) {}
-        scrollList = null;
-    }
+function renderPage(data, error, routesMap, stopName) {
+    hmUI.createWidget(hmUI.widget.TEXT, {
+        x: 0, y: 5, w: dims.width, h: 28,
+        text: stopName || 'Остановка',
+        text_size: 22, color: 0xffffff, align_h: hmUI.align.CENTER_H
+    });
     
     if (error) {
         hmUI.createWidget(hmUI.widget.TEXT, {
@@ -96,7 +81,7 @@ function renderArrivals(data, error) {
     var items = [];
     for (var i = 0; i < arrivals.length; i++) {
         var arr = arrivals[i];
-        var routeName = getRouteName(arr.route_id);
+        var routeName = getRouteName(arr.route_id, routesMap);
         var planTime;
         try { planTime = new Date(arr.departure_plan); }
         catch (e) { planTime = now; }
@@ -135,7 +120,7 @@ function renderArrivals(data, error) {
         return;
     }
     
-    scrollList = hmUI.createWidget(hmUI.widget.SCROLL_LIST, {
+    hmUI.createWidget(hmUI.widget.SCROLL_LIST, {
         x: 8, y: 40, w: dims.width - 16, h: dims.height - 80,
         item_space: 8,
         item_config: [{
@@ -161,51 +146,46 @@ Page({
     state: {},
     
     onInit(param) {
-        stopData = parseParam(param);
-        if (!stopData) {
-            hmApp.goBack();
-        }
-    },
-    
-    build() {
-        if (!stopData) return;
+        var query = parseQueryParam(param);
+        var stopStr = query.stop || '{}';
+        var routesStr = query.allRoutes || '{}';
+        
+        var stopData = {};
+        var routesMap = {};
+        
+        try {
+            stopData = JSON.parse(stopStr);
+        } catch (e) {}
+        
+        try {
+            routesMap = JSON.parse(routesStr);
+        } catch (e) {}
+        
+        var apiRequest = getApp()._options.globalData.apiRequest;
         
         hmUI.createWidget(hmUI.widget.TEXT, {
             x: 0, y: 5, w: dims.width, h: 28,
-            text: stopData.stopName || 'Остановка',
+            text: stopData.name || 'Остановка',
             text_size: 22, color: 0xffffff, align_h: hmUI.align.CENTER_H
         });
         
-        loadingText = hmUI.createWidget(hmUI.widget.TEXT, {
+        hmUI.createWidget(hmUI.widget.TEXT, {
             x: 0, y: 50, w: dims.width, h: 30,
             text: 'Загрузка...',
             text_size: 18, color: 0x888888, align_h: hmUI.align.CENTER_H
         });
         
-        var apiRequest = getApp()._options.globalData.apiRequest;
-        if (!apiRequest) {
-            renderArrivals(null, 'No API');
+        if (!apiRequest || !stopData.id) {
+            renderPage(null, 'Нет данных', routesMap, stopData.name);
             return;
         }
         
-        loadTimeout = setTimeout(function() {
-            renderArrivals(null, 'Таймаут');
-        }, 15000);
-        
-        apiRequest('GET_ROUTES', {}, function(err, data) {
-            if (!err && data && data.map) {
-                routesMap = data.map;
-            }
-            
-            apiRequest('GET_ARRIVALS', { stopId: stopData.stopId }, function(err2, arrivals) {
-                if (loadTimeout) {
-                    clearTimeout(loadTimeout);
-                    loadTimeout = null;
-                }
-                renderArrivals(arrivals, err2);
-            });
+        apiRequest('GET_ARRIVALS', { stopId: stopData.id }, function(err, data) {
+            renderPage(data, err, routesMap, stopData.name);
         });
-        
+    },
+    
+    build() {
         hmApp.registerGestureEvent(function(e) {
             if (e === hmApp.gesture.RIGHT) {
                 hmApp.goBack();

@@ -11,11 +11,25 @@ function getDeviceDims() {
 }
 
 var dims = getDeviceDims();
-var stopsList = [];
-var scrollList = null;
-var loadingText = null;
 var routesMap = {};
-var loadTimeout = null;
+
+function parseQueryParam(param) {
+    if (!param) return {};
+    try {
+        var result = {};
+        var str = param.startsWith('?') ? param.substring(1) : param;
+        var pairs = str.split('&');
+        for (var i = 0; i < pairs.length; i++) {
+            var kv = pairs[i].split('=');
+            if (kv.length >= 2) {
+                result[decodeURIComponent(kv[0])] = decodeURIComponent(kv.slice(1).join('='));
+            }
+        }
+        return result;
+    } catch (e) {
+        return {};
+    }
+}
 
 function getRoutesText(routeIds) {
     if (!routeIds || !routeIds.length) return '-';
@@ -26,114 +40,76 @@ function getRoutesText(routeIds) {
     return result.join(' ');
 }
 
-function renderStops(stops, error) {
-    stopsList = stops || [];
-    
-    if (loadingText) {
-        try { loadingText.delete(); } catch (e) {}
-        loadingText = null;
-    }
-    
-    if (scrollList) {
-        try { scrollList.delete(); } catch (e) {}
-        scrollList = null;
-    }
-    
-    hmUI.createWidget(hmUI.widget.TEXT, {
-        x: 0, y: 5, w: dims.width, h: 28,
-        text: error ? 'Ошибка' : 'Остановки',
-        text_size: 24, color: 0xffffff, align_h: hmUI.align.CENTER_H
-    });
-    
-    if (stopsList.length === 0) {
-        hmUI.createWidget(hmUI.widget.TEXT, {
-            x: 0, y: 50, w: dims.width, h: 30,
-            text: error ? String(error) : 'Нет данных',
-            text_size: 16, color: 0x888888, align_h: hmUI.align.CENTER_H
-        });
-        return;
-    }
-    
-    var dataArray = [];
-    for (var i = 0; i < stopsList.length; i++) {
-        dataArray.push({
-            name: stopsList[i].name || '?',
-            routes: getRoutesText(stopsList[i].routes_ids),
-            id: stopsList[i].id
-        });
-    }
-    
-    scrollList = hmUI.createWidget(hmUI.widget.SCROLL_LIST, {
-        x: 8, y: 40, w: dims.width - 16, h: dims.height - 80,
-        item_space: 8,
-        item_config: [{
-            type_id: 1,
-            item_height: 68,
-            item_bg_color: 0x222222,
-            item_bg_radius: 10,
-            text_view: [
-                { x: 8, y: 8, w: dims.width - 32, h: 28, key: 'name', color: 0xffffff, text_size: 22 },
-                { x: 8, y: 38, w: dims.width - 32, h: 24, key: 'routes', color: 0x888888, text_size: 18 }
-            ],
-            text_view_count: 2
-        }],
-        item_config_count: 1,
-        data_array: dataArray,
-        data_count: dataArray.length,
-        item_click_func: function(list, index) {
-            var stop = stopsList[index];
-            if (stop) {
-                var param = '{"stopId":' + stop.id + ',"stopName":"' + (stop.name || '') + '"}';
-                hmApp.gotoPage({ url: 'page/StopDetailPage', param: param });
-            }
-        }
-    });
-}
-
 Page({
     state: {},
     
-    build() {
+    onInit(param) {
+        var query = parseQueryParam(param);
+        var stopsStr = query.stops || '[]';
+        var routesStr = query.routes || '{}';
+        
+        try {
+            var stopsList = JSON.parse(stopsStr);
+            routesMap = JSON.parse(routesStr);
+        } catch (e) {
+            var stopsList = [];
+        }
+        
         hmUI.createWidget(hmUI.widget.TEXT, {
             x: 0, y: 5, w: dims.width, h: 28,
             text: 'Остановки',
             text_size: 24, color: 0xffffff, align_h: hmUI.align.CENTER_H
         });
         
-        loadingText = hmUI.createWidget(hmUI.widget.TEXT, {
-            x: 0, y: 50, w: dims.width, h: 30,
-            text: 'Загрузка...',
-            text_size: 18, color: 0x888888, align_h: hmUI.align.CENTER_H
-        });
-        
-        var apiRequest = getApp()._options.globalData.apiRequest;
-        if (!apiRequest) {
-            renderStops([], 'No API');
+        if (!stopsList || stopsList.length === 0) {
+            hmUI.createWidget(hmUI.widget.TEXT, {
+                x: 0, y: 50, w: dims.width, h: 30,
+                text: 'Нет данных',
+                text_size: 18, color: 0x888888, align_h: hmUI.align.CENTER_H
+            });
             return;
         }
         
-        loadTimeout = setTimeout(function() {
-            renderStops([], 'Таймаут');
-        }, 15000);
-        
-        apiRequest('GET_ROUTES', {}, function(err, data) {
-            if (!err && data && data.map) {
-                routesMap = data.map;
-            }
-            
-            apiRequest('GET_STOPS', {}, function(err2, stops) {
-                if (loadTimeout) {
-                    clearTimeout(loadTimeout);
-                    loadTimeout = null;
-                }
-                if (!err2 && stops) {
-					console.log('Остановки получены, пытаемся отрисовать список');
-                    renderStops(stops);
-                } else {
-					console.log('Остановки не получены, пытаемся отрисовать список пустым');
-                    renderStops([], err2 || 'Нет данных');
-                }
+        var dataArray = [];
+        for (var i = 0; i < stopsList.length; i++) {
+            dataArray.push({
+                name: stopsList[i].name || '?',
+                routes: getRoutesText(stopsList[i].routes_ids),
+                id: stopsList[i].id
             });
+        }
+        
+        hmUI.createWidget(hmUI.widget.SCROLL_LIST, {
+            x: 8, y: 40, w: dims.width - 16, h: dims.height - 80,
+            item_space: 8,
+            item_config: [{
+                type_id: 1,
+                item_height: 68,
+                item_bg_color: 0x222222,
+                item_bg_radius: 10,
+                text_view: [
+                    { x: 8, y: 8, w: dims.width - 32, h: 28, key: 'name', color: 0xffffff, text_size: 22 },
+                    { x: 8, y: 38, w: dims.width - 32, h: 24, key: 'routes', color: 0x888888, text_size: 18 }
+                ],
+                text_view_count: 2
+            }],
+            item_config_count: 1,
+            data_array: dataArray,
+            data_count: dataArray.length,
+            item_click_func: function(list, index) {
+                var stop = stopsList[index];
+                if (stop) {
+                    var stopsJson = encodeURIComponent(JSON.stringify(stopsList));
+                    var routesJson = encodeURIComponent(JSON.stringify(routesMap));
+                    var stopJson = encodeURIComponent(JSON.stringify(stop));
+                    hmApp.gotoPage({
+                        url: 'page/StopDetailPage',
+                        param: '?stop=' + stopJson + '&allStops=' + stopsJson + '&allRoutes=' + routesJson
+                    });
+                }
+            }
         });
-    }
+    },
+    
+    build() {}
 });
