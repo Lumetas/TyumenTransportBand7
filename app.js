@@ -1,3 +1,4 @@
+const version = -1;
 import "./shared/device-polyfill";
 import "./shared/promise";
 import "./shared/setTimeout";

@@ -25,7 +25,7 @@ Page({
         if (!routesIds || !routesIds.length) return '-';
         var routesMap = this.getService().getRoutesMap();
         var result = [];
-        for (var i = 0; i < Math.min(routesIds.length, 5); i++) {
+        for (var i = 0; i < Math.min(routesIds.length, 4); i++) {
             result.push(routesMap[routesIds[i]] || String(routesIds[i]));
         }
         return result.join(' ');
@@ -42,11 +42,12 @@ Page({
     
     renderHeader() {
         this.state.widgets.push(hmUI.createWidget(hmUI.widget.TEXT, {
-            x: 0, y: 15, w: 192, h: 35,
+            x: 0, y: 5, w: 176, h: 28,
             text: 'Остановки',
-            text_size: 22,
+            text_size: 24,
             color: 0xffffff,
-            align_h: hmUI.align.CENTER_H
+            align_h: hmUI.align.CENTER_H,
+            align_v: hmUI.align.CENTER_V
         }));
     },
     
@@ -55,36 +56,40 @@ Page({
         this.state.listWidgets.forEach(function(w) { hmUI.deleteWidget(w); });
         this.state.listWidgets = [];
 
-        for (var i = 0; i < 4; i++) {
+        for (var i = 0; i < 3; i++) {
             var stopIdx = this.state.selectedIndex + i;
             var stop = this.state.stops[stopIdx];
             if (!stop) continue;
 
-            var baseY = 60 + i * 60;
+            var baseY = 40 + i * 75;
 
             this.state.listWidgets.push(hmUI.createWidget(hmUI.widget.FILL_RECT, {
-                x: 16, y: baseY, w: 160, h: 52,
+                x: 8, y: baseY, w: 160, h: 68,
                 color: 0x222222,
-                radius: 8
+                radius: 10
             }));
 
             this.state.listWidgets.push(hmUI.createWidget(hmUI.widget.TEXT, {
-                x: 24, y: baseY + 6, w: 140, h: 22,
+                x: 8, y: baseY + 8, w: 160, h: 28,
                 text: stop.name,
-                text_size: 16,
-                color: 0xffffff
+                text_size: 22,
+                color: 0xffffff,
+                align_h: hmUI.align.CENTER_H,
+                align_v: hmUI.align.CENTER_V
             }));
 
             var routesText = this.getRoutesText(stop.routes_ids);
             this.state.listWidgets.push(hmUI.createWidget(hmUI.widget.TEXT, {
-                x: 24, y: baseY + 28, w: 140, h: 18,
+                x: 8, y: baseY + 38, w: 160, h: 24,
                 text: routesText,
-                text_size: 12,
-                color: 0x888888
+                text_size: 18,
+                color: 0x888888,
+                align_h: hmUI.align.CENTER_H,
+                align_v: hmUI.align.CENTER_V
             }));
 
             var btn = hmUI.createWidget(hmUI.widget.IMG, {
-                x: 16, y: baseY, w: 160, h: 52,
+                x: 8, y: baseY, w: 160, h: 68,
                 src: ''
             });
             this.state.listWidgets.push(btn);
@@ -99,21 +104,23 @@ Page({
 
         if (this.state.selectedIndex > 0) {
             this.state.listWidgets.push(hmUI.createWidget(hmUI.widget.TEXT, {
-                x: 0, y: 305, w: 192, h: 20,
-                text: '^ вверх',
-                text_size: 12,
+                x: 0, y: 275, w: 176, h: 24,
+                text: '^',
+                text_size: 20,
                 color: 0x666666,
-                align_h: hmUI.align.CENTER_H
+                align_h: hmUI.align.CENTER_H,
+                align_v: hmUI.align.CENTER_V
             }));
         }
 
-        if (this.state.selectedIndex < this.state.stops.length - 4) {
+        if (this.state.selectedIndex < this.state.stops.length - 3) {
             this.state.listWidgets.push(hmUI.createWidget(hmUI.widget.TEXT, {
-                x: 0, y: 325, w: 192, h: 20,
-                text: 'v вниз',
-                text_size: 12,
+                x: 0, y: 300, w: 176, h: 24,
+                text: 'v',
+                text_size: 20,
                 color: 0x666666,
-                align_h: hmUI.align.CENTER_H
+                align_h: hmUI.align.CENTER_H,
+                align_v: hmUI.align.CENTER_V
             }));
         }
     },

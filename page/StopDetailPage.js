@@ -57,11 +57,12 @@ Page({
     
     renderHeader: function() {
         this.state.widgets.push(hmUI.createWidget(hmUI.widget.TEXT, {
-            x: 0, y: 15, w: 192, h: 30,
+            x: 0, y: 5, w: 176, h: 28,
             text: this.state.stopData.stopName || 'Остановка',
-            text_size: 18,
+            text_size: 22,
             color: 0xffffff,
-            align_h: hmUI.align.CENTER_H
+            align_h: hmUI.align.CENTER_H,
+            align_v: hmUI.align.CENTER_V
         }));
     },
     
@@ -89,23 +90,23 @@ Page({
         arrivals.sort(function(a, b) {
             return new Date(a.departure_plan) - new Date(b.departure_plan);
         });
-        return arrivals.slice(0, 7);
+        return arrivals.slice(0, 5);
     },
     
     renderArrivals: function(arrivals) {
         if (!arrivals.length) {
             this.state.widgets.push(hmUI.createWidget(hmUI.widget.TEXT, {
-                x: 0, y: 150, w: 192, h: 30,
+                x: 0, y: 100, w: 176, h: 30,
                 text: 'Нет данных',
-                text_size: 14,
+                text_size: 18,
                 color: 0x888888,
-                align_h: hmUI.align.CENTER_H
+                align_h: hmUI.align.CENTER_H,
+                align_v: hmUI.align.CENTER_V
             }));
             return;
         }
 
         var now = new Date();
-        var self = this;
 
         for (var i = 0; i < arrivals.length; i++) {
             var arr = arrivals[i];
@@ -116,10 +117,10 @@ Page({
 
             var timeText, timeColor;
             if (diffMins <= 0) {
-                timeText = 'Сейчас';
+                timeText = 'СЕЙЧАС';
                 timeColor = 0xff6666;
             } else if (diffMins < 60) {
-                timeText = diffMins + ' мин';
+                timeText = diffMins + ' МИН';
                 timeColor = diffMins < 5 ? 0xff6666 : 0x66ff66;
             } else {
                 var h = planTime.getHours();
@@ -128,35 +129,39 @@ Page({
                 timeColor = 0xffffff;
             }
 
-            var baseY = 70 + i * 42;
+            var baseY = 45 + i * 55;
 
-            if (i % 2 === 0) {
-                this.state.widgets.push(hmUI.createWidget(hmUI.widget.FILL_RECT, {
-                    x: 8, y: baseY, w: 176, h: 38,
-                    color: 0x2a2a2a,
-                    radius: 4
-                }));
-            }
+            this.state.widgets.push(hmUI.createWidget(hmUI.widget.FILL_RECT, {
+                x: 8, y: baseY, w: 160, h: 48,
+                color: 0x222222,
+                radius: 8
+            }));
 
             this.state.widgets.push(hmUI.createWidget(hmUI.widget.TEXT, {
-                x: 16, y: baseY + 8, w: 50, h: 24,
+                x: 8, y: baseY, w: 50, h: 48,
                 text: routeName,
-                text_size: 16,
-                color: 0xffffff
+                text_size: 22,
+                color: 0xffffff,
+                align_h: hmUI.align.CENTER_H,
+                align_v: hmUI.align.CENTER_V
             }));
 
             this.state.widgets.push(hmUI.createWidget(hmUI.widget.TEXT, {
-                x: 70, y: baseY + 8, w: 70, h: 24,
+                x: 58, y: baseY, w: 70, h: 48,
                 text: timeText,
-                text_size: 16,
-                color: timeColor
+                text_size: 22,
+                color: timeColor,
+                align_h: hmUI.align.CENTER_H,
+                align_v: hmUI.align.CENTER_V
             }));
 
             this.state.widgets.push(hmUI.createWidget(hmUI.widget.TEXT, {
-                x: 140, y: baseY + 10, w: 44, h: 20,
-                text: arr.precise ? 'точн.' : 'распис.',
-                text_size: 10,
-                color: 0x666666
+                x: 128, y: baseY, w: 40, h: 48,
+                text: arr.precise ? 'тчк' : 'рас',
+                text_size: 14,
+                color: 0x666666,
+                align_h: hmUI.align.CENTER_H,
+                align_v: hmUI.align.CENTER_V
             }));
         }
     },
