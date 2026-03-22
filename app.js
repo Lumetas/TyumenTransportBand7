@@ -3,6 +3,7 @@ import "./shared/promise";
 import * as Config from "./config.js";
 import { MessageBuilder } from "./shared/message.js";
 import { Compressor } from "./shared/compressor.js";
+import { _LOCAL_API } from "./localAPI.js";
 
 var _messageBuilder = null;
 var _isReady = false;
@@ -15,13 +16,13 @@ function processPending() {
     }
 }
 
-function apiRequestReal(method, params, callback) {
-    console.log('apiRequestReal', method, 'ready=', _isReady);
+function apiRequestRemote(method, params, callback) {
+    console.log('Remote: START', method, 'ready=', _isReady);
     
     if (!_isReady || !_messageBuilder) {
-        console.log('apiRequestReal: not ready, queueing');
+        console.log('Remote: not ready, queueing');
         _pendingRequests.push(function() {
-            apiRequestReal(method, params, callback);
+            apiRequestRemote(method, params, callback);
         });
         return;
     }
@@ -31,75 +32,146 @@ function apiRequestReal(method, params, callback) {
             method: method,
             params: params || {}
         }, function(err, result) {
-            try {
-                if (typeof callback !== 'function') return;
-                
-                if (err) {
-                    console.log('apiRequestReal: error', err);
-                    callback(null, { arrivals: [] });
-                    return;
+            console.log('Remote: callback err=', err, 'result=', typeof result);
+            
+            if (typeof callback !== 'function') {
+                console.log('Remote: callback not function');
+                return;
+            }
+            
+            if (err) {
+                console.log('Remote: has error');
+                callback(null, { arrivals: [] });
+                return;
+            }
+            
+            var data = null;
+            if (result && result.data) {
+                data = result.data.result !== undefined ? result.data.result : result.data;
+            } else {
+                data = result;
+            }
+            
+            console.log('Remote: data type=', typeof data, 'preview=', String(data).substring(0, 50));
+            
+            var arrivals = [];
+            
+            if (typeof data === 'string' && data.length > 0) {
+                console.log('Remote: data is string, decompressing...');
+                try {
+                    var decompressed = Compressor.decode(data);
+                    console.log('Remote: decompressed=', JSON.stringify(decompressed));
+                    if (decompressed && decompressed.arrivals) {
+                        arrivals = decompressed.arrivals;
+                    }
+                } catch (e) {
+                    console.log('Remote: decompress error', e);
                 }
-                
-                var data = null;
-                if (result && result.data) {
-                    data = result.data.result !== undefined ? result.data.result : result.data;
-                } else {
-                    data = result;
-                }
-                
-                console.log('apiRequestReal: data=', JSON.stringify(data));
-                
-                var arrivals = [];
-                
-                if (typeof data === 'string' && data.length > 0) {
-                    console.log('apiRequestReal: decompressing string...');
+            } else if (data && typeof data === 'object') {
+                console.log('Remote: data is object, keys=', Object.keys(data));
+                if (data.result && typeof data.result === 'string') {
+                    console.log('Remote: data.result is string, decompressing...');
                     try {
-                        var decompressed = Compressor.decode(data);
+                        var decompressed = Compressor.decode(data.result);
+                        console.log('Remote: decompressed=', JSON.stringify(decompressed));
                         if (decompressed && decompressed.arrivals) {
                             arrivals = decompressed.arrivals;
-                            console.log('apiRequestReal: decompressed arrivals=', arrivals.length);
                         }
                     } catch (e) {
-                        console.log('apiRequestReal: decompress error', e);
+                        console.log('Remote: decompress data.result error', e);
                     }
-                } else if (typeof data === 'object' && data !== null) {
-                    console.log('apiRequestReal: data is object, keys=', Object.keys(data));
-                    if (data.arrivals) {
-                        arrivals = data.arrivals;
-                        console.log('apiRequestReal: found arrivals in data.arrivals');
-                    } else if (data.result) {
-                        console.log('apiRequestReal: data.result type=', typeof data.result);
-                        if (typeof data.result === 'string' && data.result.length > 0) {
-                            try {
-                                var decompressed = Compressor.decode(data.result);
-                                if (decompressed && decompressed.arrivals) {
-                                    arrivals = decompressed.arrivals;
-                                    console.log('apiRequestReal: decompressed from data.result');
-                                }
-                            } catch (e) {
-                                console.log('apiRequestReal: decompress data.result error', e);
-                            }
-                        }
-                    }
+                } else if (data.arrivals) {
+                    arrivals = data.arrivals;
+                } else {
+                    console.log('Remote: unknown object format');
                 }
-                
-                console.log('apiRequestReal: FINAL arrivals count=', arrivals.length);
-                
-                if (typeof callback === 'function') {
-                    callback(null, { arrivals: arrivals });
-                }
-            } catch (e) {
-                console.log('apiRequestReal: callback error', e);
+            } else {
+                console.log('Remote: unknown format, data=', JSON.stringify(data));
             }
+            
+            callback(null, { arrivals: arrivals });
         });
     } catch (e) {
-        console.log('apiRequestReal: error', e);
-        try {
-            if (typeof callback === 'function') {
-                callback(null, { arrivals: [] });
-            }
-        } catch (err) {}
+        console.log('Remote: error', e);
+        if (typeof callback === 'function') {
+            callback(null, { arrivals: [] });
+        }
     }
+}
+
+function getLocalArrivals(stopId) {
+    console.log('LocalAPI: stopId=', stopId);
+    if (typeof _LOCAL_API === 'undefined' || !_LOCAL_API) {
+        console.log('LocalAPI: _LOCAL_API not defined');
+        return [];
+    }
+    var stopData = _LOCAL_API[stopId];
+    if (!stopData) {
+        console.log('LocalAPI: no data for stopId');
+        return [];
+    }
+    console.log('LocalAPI: found stopData, routes=', Object.keys(stopData));
+    
+    var arrivals = [];
+    var now = new Date();
+    var localH = now.getHours();
+    var localM = now.getMinutes();
+    var localS = now.getSeconds();
+    var nowSec = localH * 3600 + localM * 60 + localS;
+    
+    for (var routeName in stopData) {
+        var times = stopData[routeName];
+        if (!times || !Array.isArray(times)) continue;
+        
+        for (var i = 0; i < times.length; i++) {
+            var time = times[i];
+            if (typeof time !== 'string') continue;
+            
+            var parts = time.split(':');
+            if (parts.length < 2) continue;
+            
+            var h = parseInt(parts[0], 10);
+            var m = parseInt(parts[1], 10);
+            var s = parts.length > 2 ? parseInt(parts[2], 10) : 0;
+            
+            var dayOffset = 0;
+            var timeSec = h * 3600 + m * 60 + s;
+            
+            if (timeSec < nowSec - 300) {
+                dayOffset = 1;
+            }
+            
+            var arrivalDate = new Date();
+            arrivalDate.setDate(arrivalDate.getDate() + dayOffset);
+            arrivalDate.setHours(h, m, s, 0);
+            
+            arrivals.push({
+                r: routeName,
+                t: arrivalDate.getTime(),
+                p: 0
+            });
+        }
+    }
+    
+    arrivals.sort(function(a, b) {
+        return a.t - b.t;
+    });
+    
+    console.log('LocalAPI: total arrivals=', arrivals.length);
+    return arrivals;
+}
+
+function apiRequestLocal(method, params, callback) {
+    if (typeof callback !== 'function') return;
+    
+    setTimeout(function() {
+        var arrivals = [];
+        if (method === 'GET_ARRIVALS') {
+            var stopId = params && params.stopId ? params.stopId : 0;
+            arrivals = getLocalArrivals(stopId);
+        }
+        callback(null, { arrivals: arrivals });
+    }, 100);
 }
 
 function generateMockArrivals(stopId) {
@@ -119,7 +191,7 @@ function generateMockArrivals(stopId) {
     }
     
     arrivals.sort(function(a, b) {
-        return new Date(a.t) - new Date(b.t);
+        return a.t - b.t;
     });
     
     return arrivals;
@@ -129,23 +201,23 @@ function apiRequestMock(method, params, callback) {
     if (typeof callback !== 'function') return;
     
     setTimeout(function() {
-        try {
-            var arrivals = [];
-            if (method === 'GET_ARRIVALS') {
-                arrivals = generateMockArrivals(params && params.stopId ? params.stopId : 0);
-            }
-            if (typeof callback === 'function') {
-                callback(null, { arrivals: arrivals });
-            }
-        } catch (e) {}
+        var arrivals = [];
+        if (method === 'GET_ARRIVALS') {
+            arrivals = generateMockArrivals(params && params.stopId ? params.stopId : 0);
+        }
+        callback(null, { arrivals: arrivals });
     }, 300 + Math.random() * 500);
 }
 
 function apiRequest(method, params, callback) {
-    if (Config.USE_MOCK_API) {
+    var mode = Config.API_MODE || 'remote';
+    
+    if (mode === 'local') {
+        apiRequestLocal(method, params, callback);
+    } else if (mode === 'mock') {
         apiRequestMock(method, params, callback);
     } else {
-        apiRequestReal(method, params, callback);
+        apiRequestRemote(method, params, callback);
     }
 }
 
@@ -153,13 +225,15 @@ App({
     globalData: {
         apiRequest: apiRequest,
         isReady: function() { return _isReady; },
-        USE_MOCK_API: Config.USE_MOCK_API
+        API_MODE: Config.API_MODE
     },
     onCreate: function() {
         try {
-            console.log('App onCreate, MOCK_API:', Config.USE_MOCK_API);
+            console.log('App onCreate, API_MODE:', Config.API_MODE);
             
-            if (Config.USE_MOCK_API) {
+            var mode = Config.API_MODE || 'remote';
+            
+            if (mode === 'local' || mode === 'mock') {
                 _isReady = true;
                 return;
             }
