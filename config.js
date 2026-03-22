@@ -9,4 +9,6 @@ export const STOPS = {
 	"Ершова": 225
 };
 
-export const USE_MOCK_API = false;
+export const API_MODE = 'local';
+// export const API_MODE = 'mock';
+// export const API_MODE = 'remote';
