@@ -9,8 +9,9 @@ var messageBuilder = new MessageBuilder();
 async function fetchJSON(url, callback) {
     try {
 		// TODO: Если оставить первый вариант, то ошибка парсинга. Если второй, то бесконечный цикл с подключениями
-        var res = await fetch(url);
-		callback(null, JSON.parse(res.body));
+        let res = await fetch(url);
+		// callback(typeof res.body, JSON.parse(res.body));
+		callback(null, res.body);
 		
 		// const data = typeof res.body === 'string' ?  JSON.parse(res.body) : res.body
 		// callback(null, data);
@@ -38,7 +39,7 @@ function getRoutes(callback) {
         return;
     }
     fetchJSON(API_BASE + '/routesforsearch/?date=today', function(err, data) {
-        if (err) { callback(err + '1'); return; }
+        if (err) { callback(err); return; }
         try {
             var routes = data.objects || data || [];
             routesCache = { routes: routes, map: buildRoutesMap(routes) };
@@ -90,19 +91,19 @@ AppSideService({
             
             if (method === 'GET_ROUTES') {
                 getRoutes(function(err, data) {
-					data = JSON.stringify(data);
+					// data = JSON.stringify(data);
                     if (err) ctx.response({ data: { error: err } });
                     else ctx.response({ data: { result: data } });
                 });
             } else if (method === 'GET_STOPS') {
                 getStops(function(err, data) {
-					data = JSON.stringify(data);
+					// data = JSON.stringify(data);
                     if (err) ctx.response({ data: { error: err } });
                     else ctx.response({ data: { result: data } });
                 });
             } else if (method === 'GET_ARRIVALS') {
                 getArrivals(params.stopId, function(err, data) {
-					data = JSON.stringify(data);
+					// data = JSON.stringify(data);
                     if (err) ctx.response({ data: { error: err } });
                     else ctx.response({ data: { result: data } });
                 });
