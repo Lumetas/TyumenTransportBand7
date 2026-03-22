@@ -109,9 +109,13 @@ function getArrivals(stopId, callback) {
                                 for (var m = 0; m < orders.length; m++) {
                                     var order = orders[m];
                                     if (order && order.prediction) {
+                                        var planTime = null;
+                                        try {
+                                            planTime = new Date(order.prediction.departure_plan).getTime();
+                                        } catch (e) {}
                                         arrivals.push({
                                             r: routeMap[rId] || String(rId),
-                                            t: order.prediction.departure_plan,
+                                            t: planTime,
                                             p: order.prediction.precise ? 1 : 0
                                         });
                                     }

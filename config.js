@@ -8,3 +8,5 @@ export const STOPS = {
 	"ЖДВ": 326,
 	"Ершова": 225
 };
+
+export const USE_MOCK_API = false;

@@ -1,5 +1,4 @@
-import pako from "../shared/pako.js";
-import { Compressor } from "../shared/compressor.js";
+import * as Config from "../config.js";
 
 var dims = { width: 176, height: 368 };
 
@@ -11,9 +10,7 @@ function getDeviceDims() {
                 return { width: info.width, height: info.height };
             }
         }
-    } catch (e) {
-        console.log('StopDetail: getDeviceDims error', e);
-    }
+    } catch (e) {}
     return dims;
 }
 
@@ -33,33 +30,23 @@ function parseQueryParam(param) {
         }
         return result;
     } catch (e) {
-        console.log('StopDetail: parseQueryParam error', e);
         return {};
     }
 }
 
-function renderPage(error, arrivals, stopName) {
+var _isPageAlive = true;
+
+function renderPage(arrivals, stopName) {
+    if (!_isPageAlive) return;
+    
     try {
-        console.log('StopDetail: renderPage START', JSON.stringify({ error: error, arrivalsCount: arrivals ? arrivals.length : 0, name: stopName }));
-        
         hmUI.createWidget(hmUI.widget.TEXT, {
             x: 0, y: 5, w: dims.width, h: 28,
             text: stopName || 'Остановка',
             text_size: 22, color: 0xffffff, align_h: hmUI.align.CENTER_H
         });
         
-        if (error) {
-            console.log('StopDetail: Render show error:', error);
-            hmUI.createWidget(hmUI.widget.TEXT, {
-                x: 0, y: 50, w: dims.width, h: 30,
-                text: String(error),
-                text_size: 16, color: 0xff6666, align_h: hmUI.align.CENTER_H
-            });
-            return;
-        }
-        
         if (!arrivals || !arrivals.length) {
-            console.log('StopDetail: Render show no data');
             hmUI.createWidget(hmUI.widget.TEXT, {
                 x: 0, y: 50, w: dims.width, h: 30,
                 text: 'Нет данных',
@@ -68,18 +55,14 @@ function renderPage(error, arrivals, stopName) {
             return;
         }
         
-        console.log('StopDetail: Render show list, count:', arrivals.length);
         arrivals = arrivals.slice(0, 6);
         
-        var now = new Date();
+        var nowMs = Date.now();
         var items = [];
         for (var i = 0; i < arrivals.length; i++) {
             var arr = arrivals[i];
-            var planTime;
-            try { planTime = new Date(arr.t); }
-            catch (e) { planTime = now; }
-            
-            var diffMs = planTime - now;
+            var planTime = typeof arr.t === 'number' ? arr.t : (typeof arr.t === 'string' ? new Date(arr.t).getTime() : nowMs);
+            var diffMs = planTime - nowMs;
             var diffMins = Math.round(diffMs / 60000);
             var timeText, timeColor;
             
@@ -90,8 +73,10 @@ function renderPage(error, arrivals, stopName) {
                 timeText = diffMins + ' МИН';
                 timeColor = diffMins < 5 ? 0xff6666 : 0x66ff66;
             } else {
-                var h = planTime.getHours();
-                var m = planTime.getMinutes();
+                var MSK_OFFSET_SEC = 5 * 60 * 60;
+                var totalSec = Math.floor(planTime / 1000) + MSK_OFFSET_SEC;
+                var h = Math.floor(totalSec / 3600) % 24;
+                var m = Math.floor((totalSec % 3600) / 60);
                 timeText = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
                 timeColor = 0xffffff;
             }
@@ -124,10 +109,8 @@ function renderPage(error, arrivals, stopName) {
             data_count: items.length,
             item_click_func: function() {}
         });
-        
-        console.log('StopDetail: renderPage DONE');
     } catch (e) {
-        console.log('StopDetail: renderPage ERROR', e);
+        console.log('StopDetail: render error', e);
     }
 }
 
@@ -135,84 +118,33 @@ Page({
     state: {},
     
     onInit(param) {
+        _isPageAlive = true;
+        
         try {
-            console.log('StopDetail: === onInit START ===');
-            
             var query = parseQueryParam(param);
             var stopStr = query.stop || '{}';
+            var stopData = JSON.parse(stopStr);
             
-            var stopData = {};
-            try {
-                stopData = JSON.parse(stopStr);
-                console.log('StopDetail: stopData:', JSON.stringify(stopData));
-            } catch (e) {
-                console.log('StopDetail: Parse stop ERROR', e);
-            }
+            var apiRequest = getApp()._options.globalData.apiRequest;
             
-            var apiRequest = null;
-            try {
-                var app = getApp();
-                if (app && app._options && app._options.globalData) {
-                    apiRequest = app._options.globalData.apiRequest;
-                }
-                console.log('StopDetail: apiRequest type:', typeof apiRequest);
-            } catch (e) {
-                console.log('StopDetail: getApp ERROR', e);
-            }
-            
-            if (!apiRequest || !stopData.id) {
-                console.log('StopDetail: Missing apiRequest or stopId');
-                renderPage('Нет данных', null, stopData.name);
+            if (!apiRequest) {
+                renderPage([], stopData.name);
                 return;
             }
             
-            console.log('StopDetail: Requesting arrivals for stopId:', stopData.id);
-            
-            var startTime = Date.now();
-            
-            apiRequest('GET_ARRIVALS', { stopId: stopData.id }, function(err, data) {
-                var elapsed = Date.now() - startTime;
-                console.log('StopDetail: === API callback === elapsed:', elapsed, 'ms');
-                console.log('StopDetail: err:', JSON.stringify(err));
-                console.log('StopDetail: raw data:', JSON.stringify(data));
-                
-                try {
-                    var arrivals = null;
-                    
-                    if (err) {
-                        console.log('StopDetail: API error:', err);
-                    } else if (data) {
-                        console.log('StopDetail: data.result type:', typeof data.result, 'len:', data.result ? String(data.result).length : 0);
-                        
-                        if (typeof data.result === 'string') {
-                            console.log('StopDetail: data.result preview:', data.result.substring(0, 50));
-                            console.log('StopDetail: Decompressing...');
-                            var decompressed = Compressor.decode(data.result);
-                            console.log('StopDetail: decompressed:', JSON.stringify(decompressed));
-                            if (decompressed && decompressed.arrivals) {
-                                arrivals = decompressed.arrivals;
-                                console.log('StopDetail: Decompressed OK, arrivals:', arrivals.length);
-                            }
-                        } else if (data.arrivals) {
-                            console.log('StopDetail: Data is object with arrivals');
-                            arrivals = data.arrivals;
-                        } else {
-                            console.log('StopDetail: Unknown data format');
-                        }
-                    } else {
-                        console.log('StopDetail: No data');
-                    }
-                    
-                    renderPage(err, arrivals, stopData.name);
-                } catch (e) {
-                    console.log('StopDetail: Callback ERROR', e);
-                    renderPage('Ошибка: ' + String(e), null, stopData.name);
+            apiRequest('GET_ARRIVALS', { stopId: stopData.id }, function(err, result) {
+                if (_isPageAlive) {
+                    var arrivals = (result && result.arrivals) ? result.arrivals : [];
+                    renderPage(arrivals, stopData.name);
                 }
             });
-            
         } catch (e) {
-            console.log('StopDetail: onInit ERROR', e);
+            console.log('StopDetail: onInit error', e);
         }
+    },
+    
+    onDestroy: function() {
+        _isPageAlive = false;
     },
     
     build() {
@@ -220,17 +152,15 @@ Page({
             hmApp.registerGestureEvent(function(e) {
                 try {
                     if (e === hmApp.gesture.RIGHT) {
+                        _isPageAlive = false;
                         hmApp.goBack();
                         return true;
                     }
                     return false;
                 } catch (err) {
-                    console.log('StopDetail: gesture error', err);
                     return false;
                 }
             });
-        } catch (e) {
-            console.log('StopDetail: build error', e);
-        }
+        } catch (e) {}
     }
 });

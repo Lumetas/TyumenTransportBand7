@@ -1,131 +1,189 @@
-const version = -9;
 import "./shared/device-polyfill";
 import "./shared/promise";
-import { MessageBuilder } from "./shared/message";
+import * as Config from "./config.js";
+import { MessageBuilder } from "./shared/message.js";
+import { Compressor } from "./shared/compressor.js";
 
 var _messageBuilder = null;
 var _isReady = false;
-var _requestId = 0;
+var _pendingRequests = [];
 
-function apiRequest(method, params, callback) {
-    console.log('Device: apiRequest START', method, JSON.stringify(params));
-    
-    if (typeof callback !== 'function') {
-        console.log('Device: apiRequest ERROR - callback not a function');
-        return;
+function processPending() {
+    while (_pendingRequests.length > 0 && _isReady) {
+        var req = _pendingRequests.shift();
+        req();
     }
+}
+
+function apiRequestReal(method, params, callback) {
+    console.log('apiRequestReal', method, 'ready=', _isReady);
     
     if (!_isReady || !_messageBuilder) {
-        console.log('Device: apiRequest - not ready');
-        setTimeout(function() {
-            try {
-                callback({ error: 'Not ready' }, null);
-            } catch (e) {
-                console.log('Device: apiRequest retry callback error', e);
-            }
-        }, 100);
+        console.log('apiRequestReal: not ready, queueing');
+        _pendingRequests.push(function() {
+            apiRequestReal(method, params, callback);
+        });
         return;
     }
-    
-    var reqId = ++_requestId;
-    console.log('Device: apiRequest reqId', reqId);
     
     try {
         _messageBuilder.requestCb({
             method: method,
             params: params || {}
         }, function(err, result) {
-            console.log('Device: apiRequest resp reqId', reqId, 'err:', JSON.stringify(err), 'hasResult:', !!result);
-            
             try {
+                if (typeof callback !== 'function') return;
+                
                 if (err) {
-                    callback({ error: String(err) }, null);
+                    console.log('apiRequestReal: error', err);
+                    callback(null, { arrivals: [] });
                     return;
                 }
                 
-                try {
-                    var data = null;
-                    console.log('Device: result type:', typeof result, JSON.stringify(result));
-                    if (result && result.data) {
-                        console.log('Device: result.data:', JSON.stringify(result.data));
-                        console.log('Device: result.data.result:', result.data.result);
-                        if (result.data.result !== undefined) {
-                            data = result.data.result;
-                        } else {
-                            data = result.data;
+                var data = null;
+                if (result && result.data) {
+                    data = result.data.result !== undefined ? result.data.result : result.data;
+                } else {
+                    data = result;
+                }
+                
+                console.log('apiRequestReal: data=', JSON.stringify(data));
+                
+                var arrivals = [];
+                
+                if (typeof data === 'string' && data.length > 0) {
+                    console.log('apiRequestReal: decompressing string...');
+                    try {
+                        var decompressed = Compressor.decode(data);
+                        if (decompressed && decompressed.arrivals) {
+                            arrivals = decompressed.arrivals;
+                            console.log('apiRequestReal: decompressed arrivals=', arrivals.length);
                         }
-                    } else {
-                        data = result;
+                    } catch (e) {
+                        console.log('apiRequestReal: decompress error', e);
                     }
-                    console.log('Device: final data type:', typeof data, 'isString:', typeof data === 'string');
-                    console.log('Device: final data:', JSON.stringify(data));
-                    callback(null, data);
-                } catch (e) {
-                    console.log('Device: apiRequest resp parse error', e);
-                    callback({ error: 'Parse: ' + String(e) }, null);
+                } else if (typeof data === 'object' && data !== null) {
+                    console.log('apiRequestReal: data is object, keys=', Object.keys(data));
+                    if (data.arrivals) {
+                        arrivals = data.arrivals;
+                        console.log('apiRequestReal: found arrivals in data.arrivals');
+                    } else if (data.result) {
+                        console.log('apiRequestReal: data.result type=', typeof data.result);
+                        if (typeof data.result === 'string' && data.result.length > 0) {
+                            try {
+                                var decompressed = Compressor.decode(data.result);
+                                if (decompressed && decompressed.arrivals) {
+                                    arrivals = decompressed.arrivals;
+                                    console.log('apiRequestReal: decompressed from data.result');
+                                }
+                            } catch (e) {
+                                console.log('apiRequestReal: decompress data.result error', e);
+                            }
+                        }
+                    }
+                }
+                
+                console.log('apiRequestReal: FINAL arrivals count=', arrivals.length);
+                
+                if (typeof callback === 'function') {
+                    callback(null, { arrivals: arrivals });
                 }
             } catch (e) {
-                console.log('Device: apiRequest resp callback error', e);
+                console.log('apiRequestReal: callback error', e);
             }
         });
-        
     } catch (e) {
-        console.log('Device: apiRequest send error', e);
+        console.log('apiRequestReal: error', e);
         try {
-            callback({ error: String(e) }, null);
+            if (typeof callback === 'function') {
+                callback(null, { arrivals: [] });
+            }
         } catch (err) {}
     }
 }
 
+function generateMockArrivals(stopId) {
+    var routes = ['1', '5', '10', '14', '19', '20', '25', '30', '41', '45', '60', '77'];
+    var arrivals = [];
+    var now = Date.now();
+    
+    for (var i = 0; i < 10; i++) {
+        var route = routes[Math.floor(Math.random() * routes.length)];
+        var offsetMinutes = Math.floor(Math.random() * 45) + 1;
+        var planTime = now + offsetMinutes * 60000;
+        arrivals.push({
+            r: route,
+            t: planTime,
+            p: Math.random() > 0.25 ? 1 : 0
+        });
+    }
+    
+    arrivals.sort(function(a, b) {
+        return new Date(a.t) - new Date(b.t);
+    });
+    
+    return arrivals;
+}
+
+function apiRequestMock(method, params, callback) {
+    if (typeof callback !== 'function') return;
+    
+    setTimeout(function() {
+        try {
+            var arrivals = [];
+            if (method === 'GET_ARRIVALS') {
+                arrivals = generateMockArrivals(params && params.stopId ? params.stopId : 0);
+            }
+            if (typeof callback === 'function') {
+                callback(null, { arrivals: arrivals });
+            }
+        } catch (e) {}
+    }, 300 + Math.random() * 500);
+}
+
+function apiRequest(method, params, callback) {
+    if (Config.USE_MOCK_API) {
+        apiRequestMock(method, params, callback);
+    } else {
+        apiRequestReal(method, params, callback);
+    }
+}
+
 App({
-    _VERSIONL: version,
     globalData: {
         apiRequest: apiRequest,
-        isReady: function() { return _isReady; }
+        isReady: function() { return _isReady; },
+        USE_MOCK_API: Config.USE_MOCK_API
     },
     onCreate: function() {
         try {
-            console.log('Device: App onCreate');
+            console.log('App onCreate, MOCK_API:', Config.USE_MOCK_API);
+            
+            if (Config.USE_MOCK_API) {
+                _isReady = true;
+                return;
+            }
             
             var appId = 27280;
             if (hmApp && hmApp.packageInfo) {
-                try {
-                    appId = hmApp.packageInfo().appId;
-                } catch (e) {}
+                try { appId = hmApp.packageInfo().appId; } catch (e) {}
             }
-            console.log('Device: appId', appId);
             
             _messageBuilder = new MessageBuilder({ appId: appId });
-            console.log('Device: MessageBuilder created');
-            
-            _messageBuilder.on('raw', function(data) {
-                console.log('Device: RAW data len', data ? (data.byteLength || data.length) : 0);
-            });
-            
-            _messageBuilder.on('message', function(data) {
-                console.log('Device: MESSAGE len', data ? (data.byteLength || data.length) : 0);
-            });
-            
-            _messageBuilder.on('response', function(data) {
-                console.log('Device: RESPONSE');
-            });
-            
-            _messageBuilder.on('error', function(e) {
-                console.log('Device: MessageBuilder ERROR', e);
-            });
             
             _messageBuilder.connect(function(mb) {
-                console.log('Device: Connected to side');
+                console.log('Connected to side');
                 _isReady = true;
+                processPending();
             });
             
         } catch (e) {
-            console.log('Device: Init error', e);
+            console.log('Init error:', e);
         }
     },
     onDestroy: function() {
+        _pendingRequests = [];
         try {
-            console.log('Device: App onDestroy');
             if (_messageBuilder) {
                 _messageBuilder.disConnect();
             }

@@ -1,4 +1,4 @@
-import { STOPS } from "../config.js";
+import * as Config from "../config.js";
 
 var _hasNavigated = false;
 
@@ -20,10 +20,10 @@ var dims = getDeviceDims();
 
 var stopsList = [];
 try {
-    for (var name in STOPS) {
+    for (var name in Config.STOPS) {
         stopsList.push({
             name: name,
-            id: STOPS[name]
+            id: Config.STOPS[name]
         });
     }
     console.log('StopsList: Loaded', stopsList.length, 'stops');
