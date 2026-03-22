@@ -1,0 +1,4 @@
+#!/bin/bash
+tmux send-keys -t 0:bridge 'uninstall' 'Enter'
+sleep 5
+tmux send-keys -t 0:bridge 'install' 'Enter'
